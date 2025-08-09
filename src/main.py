@@ -31,6 +31,14 @@ def main(filename):
     quantities = df.iloc[:, 5].dropna().astype(float).tolist()
     upcs = [upc for upc, qty in zip(upcs, quantities) if qty == 0]
 
+    # Remove pre-specified UPCs
+    try:
+        with open('predefined_upcs.txt', 'r') as f:
+            predefined_upcs = f.read().splitlines()
+    except FileNotFoundError:
+        predefined_upcs = []
+    upcs = [upc for upc in upcs if upc not in predefined_upcs]
+
     if not upcs:
         print("No valid UPCs found.")
         sys.exit(1)
