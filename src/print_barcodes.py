@@ -51,13 +51,6 @@ def get_zero_quantity_products(filename):
         print("No valid UPCs found.")
         sys.exit(1)
 
-    # Load UPCs that require special layout handling (if file exists)
-    try:
-        with open('multi_layout_upcs.txt', 'r') as f:
-            multi_layout_upcs = f.read().splitlines()
-    except FileNotFoundError:
-        multi_layout_upcs = []
-
     # Print extracted UPCs for user verification
     print("Extracted UPCs:")
     print(f"Total UPCs extracted: {len(upcs)}")
@@ -104,26 +97,25 @@ def create_barcode_pdf(upcs, output_file="zero_export.pdf"):
         y = page_height - margin_y - ((row + 1) * row_spacing)
         
         try:
-            # Create barcode
-            barcode = code39.Standard39(str(upc), checksum=0)
-            
-            # Create drawing for barcode
-            drawing = Drawing(barcode_width, barcode_height)
-            barcode.width = barcode_width * 0.8
-            barcode.height = barcode_height * 0.6
-            barcode.x = (barcode_width - barcode.width) / 2
-            barcode.y = barcode_height * 0.2
-            
-            drawing.add(barcode)
-            
-            # Add barcode to PDF
-            renderPDF.draw(drawing, c, x, y)
+            # Create barcode (as Flowable) with thicker bars
+            barcode = code39.Standard39(
+                str(upc),
+                checksum=0,
+                barWidth=0.8,  # Increase this value for thicker bars (default is 0.5)
+                barHeight=barcode_height * 0.9
+            )
+            barcode.width = barcode_width * 0.7
+            barcode.height = barcode_height * 0.8
+            # Draw barcode directly on canvas
+            barcode_x = x + (barcode_width - barcode.width) / 2
+            barcode_y = y + (barcode_height - barcode.height) / 2
+            barcode.drawOn(c, barcode_x, barcode_y)
             
             # Add UPC text below barcode
             c.setFont("Helvetica", 10)
             text_width = c.stringWidth(str(upc), "Helvetica", 10)
             text_x = x + (barcode_width - text_width) / 2
-            text_y = y - 15
+            text_y = y - 10
             c.drawString(text_x, text_y, str(upc))
             
         except Exception as e:
