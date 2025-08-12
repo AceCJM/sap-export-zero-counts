@@ -15,18 +15,7 @@ def enter_upcs(upc):
     time.sleep(1)
     keyboard.press_and_release('enter')
     time.sleep(1)
-    keyboard.press_and_release('enter')
-
-def layout_upc(upc):
-    """
-    Simulate typing a UPC and pressing Enter three times.
-    Used for UPCs that require extra confirmation/layout steps in SAP GUI.
-    """
-    keyboard.write(upc)
-    time.sleep(1)
-    keyboard.press_and_release('enter')
-    time.sleep(1)
-    keyboard.press_and_release('enter')
+    keyboard.press_and_release('esc')
     time.sleep(1)
     keyboard.press_and_release('enter')
 
@@ -63,29 +52,12 @@ def main(filename):
     # Keep only UPCs where the corresponding quantity is zero
     upcs = [upc for upc, qty in zip(upcs, quantities) if qty == 0]
 
-    # Remove UPCs listed in predefined_upcs.txt (if file exists)
-    try:
-        with open('predefined_upcs.txt', 'r') as f:
-            predefined_upcs = f.read().splitlines()
-    except FileNotFoundError:
-        predefined_upcs = []
-    upcs = [upc for upc in upcs if upc not in predefined_upcs]
-
     if not upcs:
         print("No valid UPCs found.")
         sys.exit(1)
 
-    # Load UPCs that require special layout handling (if file exists)
-    try:
-        with open('multi_layout_upcs.txt', 'r') as f:
-            multi_layout_upcs = f.read().splitlines()
-    except FileNotFoundError:
-        multi_layout_upcs = []
-
     # Print extracted UPCs for user verification
     print("Extracted UPCs:")
-    for upc in upcs:
-        print(upc)
     print(f"Total UPCs extracted: {len(upcs)}")
 
     # User instructions before automation starts
@@ -95,7 +67,8 @@ def main(filename):
     time.sleep(5)  # Wait for user to focus SAP GUI
 
     # Automate pasting UPCs into SAP GUI
-    for upc in upcs:
+    for i, upc in enumerate(upcs):
+        print(f"{i+1}/{len(upcs)}")
         # Allow user to cancel with ESC
         if keyboard.is_pressed('esc'):
             print("Operation cancelled by user.")
@@ -108,11 +81,7 @@ def main(filename):
             while paused:
                 if keyboard.is_pressed('shift'):
                     paused = False
-        # Use special layout handling if needed
-        if upc in multi_layout_upcs:
-            layout_upc(upc)
-        else:
-            enter_upcs(upc)
+        enter_upcs(upc)
         time.sleep(1)  # Delay between UPCs for reliability
 
 if __name__ == "__main__":
