@@ -3,8 +3,9 @@
 # and automating their entry into the SAP GUI.
 
 import pandas as pd
-import keyboard
-import sys, time
+import sys, time, os, keyboard
+
+action_delay = 0.8
 
 def enter_upcs(upc):
     """
@@ -59,6 +60,7 @@ def main(filename):
     # Print extracted UPCs for user verification
     print("Extracted UPCs:")
     print(f"Total UPCs extracted: {len(upcs)}")
+    print(f"Should take {round((len(upcs)-i-1)*action_delay/15,1)} minutes")
 
     # User instructions before automation starts
     print("press enter to start a 5 second cooldown before pasting UPCs into SAP GUI")
@@ -68,7 +70,9 @@ def main(filename):
 
     # Automate pasting UPCs into SAP GUI
     for i, upc in enumerate(upcs):
-        print(f"{i+1}/{len(upcs)}")
+        os.system('cls')
+        print(f"{i+1}/{len(upcs)*100}")
+        print(f"Time Remaining: {round((len(upcs)-i-1)*action_delay/15,1)} minutes")
         # Allow user to cancel with ESC
         if keyboard.is_pressed('esc'):
             print("Operation cancelled by user.")
@@ -83,6 +87,12 @@ def main(filename):
                     paused = False
         enter_upcs(upc)
         time.sleep(1)  # Delay between UPCs for reliability
+    os.system('cls')
+    print("Finished inputing upcs")
+    print("Close the program and review the shop floor walk")
+    while True:
+        keyboard.press_and_release('enter')
+        time.sleep(3)
 
 if __name__ == "__main__":
     # Check for correct usage
