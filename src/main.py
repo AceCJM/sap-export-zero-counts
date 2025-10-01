@@ -20,14 +20,10 @@ def enter_upcs(upc):
     time.sleep(action_delay)
     keyboard.press_and_release('enter')
 
-# debugging function for saving upc and quantity to text files
-def save_upcs_and_quantities(upcs):
-    with open('extracted_upcs.txt', 'w') as f:
-        for upc in upcs:
-            f.write(f"{upc}\n")
 
 
-def main(filename, debug=False):
+
+def main(filename):
     """
     Main logic:
     - Reads the SAP-exported .xls file.
@@ -52,11 +48,10 @@ def main(filename, debug=False):
         print("The DataFrame does not have enough columns to extract UPCs from column D.")
         sys.exit(1)
 
-    # Extract UPCs from column D, drop empty values, convert to string
-    upcs = df.iloc[:, 3].dropna().astype(str).tolist()
-    
-    # Extract quantities from column F, drop empty values, convert to float
-    quantities = df.iloc[:, 5].dropna().astype(float).tolist()
+    # Extract UPCs and quantities together, drop rows with missing values in either
+    upc_qty_df = df.iloc[:, [3, 5]].dropna()
+    upcs = upc_qty_df.iloc[:, 0].astype(str).tolist()
+    quantities = upc_qty_df.iloc[:, 1].astype(float).tolist()
 
     # Ensure UPCs and quantities lists are of the same length
     if len(upcs) != len(quantities):
@@ -64,14 +59,6 @@ def main(filename, debug=False):
         print("Warning: Mismatched lengths between UPCs and quantities. Adjusting quantities list.")
         quantities = quantities[:len(upcs)]
         print(len(upcs), len(quantities))
-    # debugging
-    if debug:
-        # order upcs by quantities
-        upcs_debug = [upc for upc, qty in zip(upcs, quantities) if qty == 0]
-        save_upcs_and_quantities(upcs_debug)
-        print("Debugging: Extracted UPCs and quantities saved to extracted_upcs.txt")
-        sys.exit(0)
-
     # Keep only UPCs where the corresponding quantity is zero
     upcs = [upc for upc, qty in zip(upcs, quantities) if qty == 0]
 
