@@ -13,14 +13,21 @@ def enter_upcs(upc):
     Used for standard UPC entry in SAP GUI.
     """
     keyboard.write(upc)
-    time.sleep(1)
+    time.sleep(action_delay)
     keyboard.press_and_release('enter')
-    time.sleep(1)
+    time.sleep(action_delay)
     keyboard.press_and_release('esc')
-    time.sleep(1)
+    time.sleep(action_delay)
     keyboard.press_and_release('enter')
 
-def main(filename):
+# debugging function for saving upc and quantity to text files
+def save_upcs_and_quantities(upcs):
+    with open('extracted_upcs.txt', 'w') as f:
+        for upc in upcs:
+            f.write(f"{upc}\n")
+
+
+def main(filename, debug=False):
     """
     Main logic:
     - Reads the SAP-exported .xls file.
@@ -50,6 +57,21 @@ def main(filename):
     
     # Extract quantities from column F, drop empty values, convert to float
     quantities = df.iloc[:, 5].dropna().astype(float).tolist()
+
+    # Ensure UPCs and quantities lists are of the same length
+    if len(upcs) != len(quantities):
+        # quantities len will be greater than upcs len
+        print("Warning: Mismatched lengths between UPCs and quantities. Adjusting quantities list.")
+        quantities = quantities[:len(upcs)]
+        print(len(upcs), len(quantities))
+    # debugging
+    if debug:
+        # order upcs by quantities
+        upcs_debug = [upc for upc, qty in zip(upcs, quantities) if qty == 0]
+        save_upcs_and_quantities(upcs_debug)
+        print("Debugging: Extracted UPCs and quantities saved to extracted_upcs.txt")
+        sys.exit(0)
+
     # Keep only UPCs where the corresponding quantity is zero
     upcs = [upc for upc, qty in zip(upcs, quantities) if qty == 0]
 
@@ -60,7 +82,6 @@ def main(filename):
     # Print extracted UPCs for user verification
     print("Extracted UPCs:")
     print(f"Total UPCs extracted: {len(upcs)}")
-    print(f"Should take {round((len(upcs)-i-1)*action_delay/15,1)} minutes")
 
     # User instructions before automation starts
     print("press enter to start a 5 second cooldown before pasting UPCs into SAP GUI")
@@ -71,8 +92,8 @@ def main(filename):
     # Automate pasting UPCs into SAP GUI
     for i, upc in enumerate(upcs):
         os.system('cls')
-        print(f"{i+1}/{len(upcs)*100}")
-        print(f"Time Remaining: {round((len(upcs)-i-1)*action_delay/15,1)} minutes")
+        print(f"{round((i+1)/len(upcs)*100,2)}% {i+1}/{len(upcs)}")
+        print(f"Time Remaining: {round((len(upcs)-i-1)*action_delay/15, 2)} minutes")
         # Allow user to cancel with ESC
         if keyboard.is_pressed('esc'):
             print("Operation cancelled by user.")
@@ -81,24 +102,32 @@ def main(filename):
         if keyboard.is_pressed('shift'):
             paused = True
             print("Paused. Press Shift again to continue.")
-            time.sleep(1)  # Prevent rapid toggling
+            time.sleep(action_delay)  # Prevent rapid toggling
             while paused:
                 if keyboard.is_pressed('shift'):
                     paused = False
         enter_upcs(upc)
-        time.sleep(1)  # Delay between UPCs for reliability
+        time.sleep(action_delay)  # Delay between UPCs for reliability
+    # Keypresses to avoid SAP timing out
     os.system('cls')
-    print("Finished inputing upcs")
-    print("Close the program and review the shop floor walk")
+    print('Program finished!\nPress space to exit then Please review pages for mistakes')
     while True:
+        if keyboard.is_pressed('space'):
+            sys.exit(0)
         keyboard.press_and_release('enter')
-        time.sleep(3)
+        time.sleep(1)
+
 
 if __name__ == "__main__":
     # Check for correct usage
-    if len(sys.argv) != 2:
+    if not (len(sys.argv) >= 2):
         print("Usage: python main.py <path_to_excel_file>")
         sys.exit(1)
     
     filename = sys.argv[1]
-    main(filename)
+    try:
+        if sys.argv[2] == ("--debug" or "-d"):
+            debug = True
+    except IndexError:
+        debug = False
+    main(filename, debug)
